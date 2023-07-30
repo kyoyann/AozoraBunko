@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,8 +10,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 type Novel struct {
@@ -124,12 +128,36 @@ func Unzip() error {
 }
 
 func ReadText() error {
+	sjisFile, err := os.Open(TEXTFILE)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sjisFile.Close()
+	reader := transform.NewReader(sjisFile, japanese.ShiftJIS.NewDecoder())
+	utf8File, err := os.Create("./utf-8.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer utf8File.Close()
+
+	// 書き込み
+	tee := io.TeeReader(reader, utf8File)
+	s := bufio.NewScanner(tee)
+	for s.Scan() {
+	}
+	if err := s.Err(); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("done")
+
 	bytes, err := ioutil.ReadFile(TEXTFILE)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(string(bytes))
+	str := string(bytes)
+	fmt.Println(utf8.RuneCountInString(str))
+	//fmt.Println(str)
 
 	return nil
 }

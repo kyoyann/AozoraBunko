@@ -1,13 +1,19 @@
 package scraping
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/device"
 )
 
 type Novel struct {
@@ -26,7 +32,7 @@ var (
 	LibraryCardUrlNotFound = errors.New("cloud not get librarycard url")
 	NovelUrlNotFound       = errors.New("cloud not get novel url")
 	FileSizeOver           = errors.New("file size over")
-	PageNotFound           = errors.New("page not found")
+	PageNotFound           = errors.New("cloud note get page")
 	CopyrightSurvival      = errors.New("copyright survival")
 )
 
@@ -36,7 +42,7 @@ func GetLibraryCardUrl(charindex, page string) ([]Novel, error) {
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
-		fmt.Println("not found page:", res.Request.URL)
+		fmt.Println("cloud not get page:", res.Request.URL)
 		return nil, PageNotFound
 	}
 	defer res.Body.Close()
@@ -106,4 +112,30 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 		return "", NovelUrlNotFound
 	}
 	return url[:strings.LastIndex(url, "/")] + novelUrl[1:], nil
+}
+
+func ElementScreenshot(urlstr, sel string) error {
+	// create context
+	ctx, cancel := chromedp.NewContext(
+		context.Background(),
+		// chromedp.WithDebugf(log.Printf),
+	)
+	defer cancel()
+
+	// capture screenshot of an element
+	var buf []byte
+	t := chromedp.Tasks{
+		chromedp.Navigate(urlstr),
+		chromedp.Screenshot(sel, &buf, chromedp.NodeVisible),
+		chromedp.Emulate(device.IPhone8),
+	}
+	if err := chromedp.Run(ctx, t); err != nil {
+		return err
+	}
+	if err := os.WriteFile(fmt.Sprintf("elementScreenshot_%v.png", time.Now()), buf, 0o644); err != nil {
+		return err
+	}
+
+	log.Printf("wrote elementScreenshot.png")
+	return nil
 }

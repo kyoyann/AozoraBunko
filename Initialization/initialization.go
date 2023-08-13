@@ -8,6 +8,7 @@ import (
 	"time"
 
 	scraping "github.com/kyoyann/AozoraBunko/Scraping"
+	"github.com/kyoyann/AozoraBunko/store"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -26,10 +27,14 @@ var charindexs = []string{
 }
 
 func main() {
+	db, err := sql.Open("sqlite3", "../store/aozora.db")
+	if err != nil {
+		log.Fatalln(err)
+	}
 	for i := 0; i < 45; i++ {
 		for j := 1; ; j++ {
 			ns, err := scraping.GetLibraryCardUrl(charindexs[i], strconv.Itoa(j))
-			if errors.Is(err, scraping.PageNotFound) {
+			if errors.Is(err, scraping.ErrGetPage) {
 				//ページがなくなったらBreak
 				break
 			}
@@ -41,18 +46,19 @@ func main() {
 					//最後のページは50件未満の場合があるため、Titleが空白ならそれ以降もberakしてInsetしないようにする
 					break
 				} else {
-					if err := Insert(vv); err != nil {
+					if err := store.Insert(db, vv); err != nil {
 						log.Fatalln(err)
 					}
 				}
 			}
+			//連続してリクエストを送信しない
 			time.Sleep(3 * time.Second)
 		}
 	}
 
 }
 
-func Insert(n scraping.Novel) error {
+/*func Insert(n scraping.Novel) error {
 	// データベースのコネクションを開く
 	db, err := sql.Open("sqlite3", "./novel.db")
 	if err != nil {
@@ -77,4 +83,4 @@ func Insert(n scraping.Novel) error {
 		return err
 	}
 	return nil
-}
+}*/

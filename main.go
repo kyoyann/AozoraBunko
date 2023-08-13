@@ -3,34 +3,100 @@
 package main
 
 import (
-	"image"
-	"image/png"
+	"database/sql"
+	"fmt"
 	"log"
-	"os"
+	"time"
 
+	image "github.com/kyoyann/AozoraBunko/Image"
 	scraping "github.com/kyoyann/AozoraBunko/Scraping"
-	"github.com/oliamb/cutter"
+	twitter "github.com/kyoyann/AozoraBunko/Twitter"
+	"github.com/kyoyann/AozoraBunko/store"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
-	if err := scraping.ElementScreenshot("https://www.aozora.gr.jp/cards/000076/files/4996_15646.html", "div.main_text"); err != nil {
-		log.Fatalln(err)
-	}
-	file, _ := os.Open("./elementScreenshot.png")
-	defer file.Close()
+	//エラーのファイル名と行数を表示
+	log.SetFlags(log.Lshortfile)
 
-	src, _, err := image.Decode(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	croppedImg, err := cutter.Crop(src, cutter.Config{
-		Width:   600,
-		Height:  600,
-		Options: cutter.Copy,
-	})
+	db, err := sql.Open("sqlite3", "./store/aozora.db")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	croppath, _ := os.Create("./cropimage.png")
-	png.Encode(croppath, croppedImg)
+	defer db.Close()
+
+	ns, err := store.GetNotPostedNovels(db)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var url string
+	var index int
+Loop:
+	for i, n := range ns {
+		fmt.Println(n)
+		url, err = scraping.GetNovelUrl(n.LibraryCardUrl)
+		switch err {
+		case scraping.ErrFileSizeOver:
+			if err := store.UpdatePostStatus(db, n.ID, store.FileSizeOver); err != nil {
+				log.Fatalln(err)
+			}
+		case scraping.ErrCopyrightSurvival:
+			if err := store.UpdatePostStatus(db, n.ID, store.CopyrightSurvival); err != nil {
+				log.Fatalln(err)
+			}
+		case scraping.ErrGetNovelUrl:
+			if err := store.UpdatePostStatus(db, n.ID, store.CloudNotGetNovelUrl); err != nil {
+				log.Fatalln(err)
+			}
+		case nil:
+			if err := store.UpdatePostStatus(db, n.ID, store.Posted); err != nil {
+				log.Fatalln(err)
+			}
+			index = i
+			//投稿可能な小説を取得できたらfor文を抜ける
+			break Loop
+		default:
+			log.Fatalln(err)
+		}
+		//連続してリクエストを送らない
+		time.Sleep(time.Second * 3)
+	}
+
+	if err := scraping.Screenshot(url, scraping.MAINSEL, scraping.MAINFILEPATH); err != nil {
+		log.Fatalln(err)
+	}
+
+	if err := scraping.Screenshot(url, scraping.INFOSEL, scraping.INFOFILEPATH); err != nil {
+		log.Fatalln(err)
+	}
+
+	cn, err := image.CreatePostImages(scraping.MAINFILEPATH)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	//ファイルサイズを制限しているため、画像が3枚以上になることはないが念の為エラー処理を入れておく
+	if cn >= 4 {
+		log.Fatalln("too many images")
+	}
+
+	var ids []string
+	for i := 1; i <= cn; i++ {
+		id, err := twitter.PostImage(fmt.Sprintf("./cropimage_%d.png", i))
+		if err != nil {
+			log.Fatalln(err)
+		}
+		ids = append(ids, id)
+	}
+
+	id, err := twitter.PostImage(scraping.INFOFILEPATH)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	ids = append(ids, id)
+
+	if err := twitter.PostTweet(ns[index].Title, ns[index].Author, ids); err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println("post", ns[index].Title, ns[index].Author)
 }

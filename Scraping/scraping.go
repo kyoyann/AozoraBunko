@@ -4,46 +4,41 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/device"
+	"github.com/kyoyann/AozoraBunko/store"
 )
-
-type Novel struct {
-	Title          string
-	Author         string
-	LibraryCardUrl string
-	Deliveryed     bool
-}
 
 const (
 	BASEURL       = "https://www.aozora.gr.jp/"
 	FILESIZELIMIT = 7600
+	MAINFILEPATH  = "MainTextScreenshot.png"
+	MAINSEL       = "div.main_text"
+	INFOFILEPATH  = "InformationScreenshot.png"
+	INFOSEL       = "div.bibliographical_information"
 )
 
 var (
-	LibraryCardUrlNotFound = errors.New("cloud not get librarycard url")
-	NovelUrlNotFound       = errors.New("cloud not get novel url")
-	FileSizeOver           = errors.New("file size over")
-	PageNotFound           = errors.New("cloud note get page")
-	CopyrightSurvival      = errors.New("copyright survival")
+	ErrGetLibraryCardUrl = errors.New("cloud not get librarycard url")
+	ErrGetNovelUrl       = errors.New("cloud not get novel url")
+	ErrFileSizeOver      = errors.New("file size over")
+	ErrGetPage           = errors.New("cloud not get page")
+	ErrCopyrightSurvival = errors.New("copyright survival")
 )
 
-func GetLibraryCardUrl(charindex, page string) ([]Novel, error) {
-	ns := make([]Novel, 50)
+func GetLibraryCardUrl(charindex, page string) ([]store.Novel, error) {
+	ns := make([]store.Novel, 50)
 	res, err := http.Get(BASEURL + "index_pages/sakuhin_" + charindex + page)
 	if err != nil {
 		return nil, err
 	} else if res.StatusCode != http.StatusOK {
-		fmt.Println("cloud not get page:", res.Request.URL)
-		return nil, PageNotFound
+		return nil, ErrGetPage
 	}
 	defer res.Body.Close()
 	fmt.Println(res.Request.URL)
@@ -67,7 +62,7 @@ func GetLibraryCardUrl(charindex, page string) ([]Novel, error) {
 		})
 	})
 	if !isFoundUrl {
-		return nil, LibraryCardUrlNotFound
+		return nil, ErrGetLibraryCardUrl
 	}
 	return ns, nil
 }
@@ -87,7 +82,7 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 	}
 	//著作権チェック
 	if doc.Find("font[color='red']").Text() != "" {
-		return "", CopyrightSurvival
+		return "", ErrCopyrightSurvival
 	}
 	doc.Find("tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
 		s.Find("td").EachWithBreak(func(j int, ss *goquery.Selection) bool {
@@ -96,7 +91,6 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 				s, err := strconv.Atoi(size)
 				if err != nil || s > FILESIZELIMIT {
 					isSizeOver = true
-					fmt.Println("file size:", s)
 					return false
 				}
 				novelUrl, isFoundUrl = ss.Next().Next().Find("a").Attr("href")
@@ -106,15 +100,15 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 		return !isFoundUrl
 	})
 	if isSizeOver {
-		return "", FileSizeOver
+		return "", ErrFileSizeOver
 	}
 	if !isFoundUrl {
-		return "", NovelUrlNotFound
+		return "", ErrGetNovelUrl
 	}
 	return url[:strings.LastIndex(url, "/")] + novelUrl[1:], nil
 }
 
-func ElementScreenshot(urlstr, sel string) error {
+func Screenshot(urlstr, sel, path string) error {
 	// create context
 	ctx, cancel := chromedp.NewContext(
 		context.Background(),
@@ -132,10 +126,8 @@ func ElementScreenshot(urlstr, sel string) error {
 	if err := chromedp.Run(ctx, t); err != nil {
 		return err
 	}
-	if err := os.WriteFile(fmt.Sprintf("elementScreenshot_%v.png", time.Now()), buf, 0o644); err != nil {
+	if err := os.WriteFile(path, buf, 0o644); err != nil {
 		return err
 	}
-
-	log.Printf("wrote elementScreenshot.png")
 	return nil
 }

@@ -23,5 +23,5 @@ go.work
 # Images
 *.png
 
-#tmp
-twitter.go
+#Auth
+auth.json

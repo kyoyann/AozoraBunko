@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	scraping "github.com/kyoyann/AozoraBunko/Scraping"
+	"github.com/kyoyann/AozoraBunko/scraping"
 	"github.com/kyoyann/AozoraBunko/store"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -57,30 +57,3 @@ func main() {
 	}
 
 }
-
-/*func Insert(n scraping.Novel) error {
-	// データベースのコネクションを開く
-	db, err := sql.Open("sqlite3", "./novel.db")
-	if err != nil {
-		return err
-	}
-
-	// テーブル作成
-	_, err = db.Exec(
-		`CREATE TABLE IF NOT EXISTS "NOVEL" ("ID" INTEGER PRIMARY KEY AUTOINCREMENT, "TITLE" VARCHAR(255), "AUTHOR" VARCHAR(255), "LIBRARYCARDURL" VARCHAR(255), "DELIVERYED" INTEGER)`,
-	)
-	if err != nil {
-		return err
-	}
-	_, err = db.Exec(
-		`INSERT INTO NOVEL(TITLE,AUTHOR,LIBRARYCARDURL,DELIVERYED) VALUES(?,?,?,?)`,
-		n.Title,
-		n.Author,
-		n.LibraryCardUrl,
-		0,
-	)
-	if err != nil {
-		return err
-	}
-	return nil
-}*/

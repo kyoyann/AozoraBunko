@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"os"
 
+	"github.com/kyoyann/AozoraBunko/scraping"
 	"github.com/oliamb/cutter"
 )
 
@@ -31,7 +32,7 @@ func CreatePostImages(path string) (int, error) {
 	bounds := img.Bounds()
 	mh := bounds.Max.Y - 1
 	sh := 0
-	cn := 1
+	cn := 0
 	//800ピクセルごとに切り出す
 	for eh := 800; ; eh += 800 {
 		//最後はmaxhを切り出して保存する
@@ -40,6 +41,7 @@ func CreatePostImages(path string) (int, error) {
 			if isAllWhite(img, sh, mh) {
 				break
 			}
+			cn++
 			if err := createCropImage(img, sh, mh, cn); err != nil {
 				return 0, err
 			}
@@ -52,10 +54,10 @@ func CreatePostImages(path string) (int, error) {
 			sh = eh
 			continue
 		}
+		cn++
 		if err := createCropImage(img, sh, eh, cn); err != nil {
 			return 0, err
 		}
-		cn++
 		sh = eh
 		//最後まで切り取ったら終了
 		if eh == mh {
@@ -125,4 +127,31 @@ func getWiteLine(img image.Image, h int) int {
 			return h
 		}
 	}
+}
+
+//呼び出し元でエラー発生時に画像を削除するため、この関数ではエラーは返さない
+func DeleteImages() {
+	//投稿した画像を削除する
+	if fileExists(scraping.MAINFILEPATH) {
+		if err := os.Remove(scraping.MAINFILEPATH); err != nil {
+			fmt.Println(err)
+		}
+	}
+	if fileExists(scraping.INFOFILEPATH) {
+		if err := os.Remove(scraping.INFOFILEPATH); err != nil {
+			fmt.Println(err)
+		}
+	}
+	for i := 1; i <= 4; i++ {
+		if fileExists(fmt.Sprintf("./cropimage_%d.png", i)) {
+			if err := os.Remove(fmt.Sprintf("./cropimage_%d.png", i)); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
 }

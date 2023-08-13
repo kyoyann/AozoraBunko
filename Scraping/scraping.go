@@ -19,8 +19,8 @@ const (
 	BASEURL       = "https://www.aozora.gr.jp/"
 	FILESIZELIMIT = 7600
 	MAINFILEPATH  = "MainTextScreenshot.png"
-	MAINSEL       = "div.main_text"
 	INFOFILEPATH  = "InformationScreenshot.png"
+	MAINSEL       = "div.main_text"
 	INFOSEL       = "div.bibliographical_information"
 )
 
@@ -108,25 +108,27 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 	return url[:strings.LastIndex(url, "/")] + novelUrl[1:], nil
 }
 
-func Screenshot(urlstr, sel, path string) error {
-	// create context
+func Screenshot(urlstr string) error {
 	ctx, cancel := chromedp.NewContext(
 		context.Background(),
 		// chromedp.WithDebugf(log.Printf),
 	)
 	defer cancel()
 
-	// capture screenshot of an element
-	var buf []byte
+	var main, info []byte
 	t := chromedp.Tasks{
 		chromedp.Navigate(urlstr),
-		chromedp.Screenshot(sel, &buf, chromedp.NodeVisible),
+		chromedp.Screenshot(MAINSEL, &main, chromedp.NodeVisible),
+		chromedp.Screenshot(INFOSEL, &info, chromedp.NodeVisible),
 		chromedp.Emulate(device.IPhone8),
 	}
 	if err := chromedp.Run(ctx, t); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, buf, 0o644); err != nil {
+	if err := os.WriteFile(MAINFILEPATH, main, 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(INFOFILEPATH, info, 0o644); err != nil {
 		return err
 	}
 	return nil

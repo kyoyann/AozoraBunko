@@ -13,11 +13,11 @@ type Novel struct {
 }
 
 const (
-	NotPosted           = 0
-	Posted              = 1
-	FileSizeOver        = 2
-	CopyrightSurvival   = 3
-	CloudNotGetNovelUrl = 4
+	NOT_POSTED         = 0
+	POSTED             = 1
+	FILESIZEOVER       = 2
+	COPYRIGHT_SURVIVAL = 3
+	NOT_GET_NOVELURL   = 4
 )
 
 func Insert(db *sql.DB, n Novel) error {
@@ -33,7 +33,7 @@ func Insert(db *sql.DB, n Novel) error {
 		n.Title,
 		n.Author,
 		n.LibraryCardUrl,
-		NotPosted,
+		NOT_POSTED,
 	)
 	if err != nil {
 		return err
@@ -57,7 +57,7 @@ func UpdatePostStatus(db *sql.DB, id, postStatus int) error {
 //未投稿の小説一覧を取得する
 func GetNotPostedNovels(db *sql.DB) ([]Novel, error) {
 	ns := []Novel{}
-	rows, err := db.Query(`SELECT ID, TITLE, AUTHOR, LIBRARYCARDURL, POSTSTATUS FROM NOVEL WHERE POSTSTATUS = ?`, NotPosted)
+	rows, err := db.Query(`SELECT ID, TITLE, AUTHOR, LIBRARYCARDURL, POSTSTATUS FROM NOVEL WHERE POSTSTATUS = ?`, NOT_POSTED)
 	if err != nil {
 		return nil, err
 	}

@@ -66,7 +66,7 @@ Loop:
 		log.Fatalln(err)
 	}
 
-	//ファイルサイズを制限しているため、画像が3枚以上になることはないが念の為エラー処理を入れておく
+	//ファイルサイズを制限しているため、画像が4枚以上になることはないが念の為エラー処理を入れておく
 	if cn >= 4 {
 		image.DeleteImages()
 		log.Fatalln("too many images")

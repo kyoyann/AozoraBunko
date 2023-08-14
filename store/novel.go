@@ -41,7 +41,6 @@ func Insert(db *sql.DB, n Novel) error {
 	return nil
 }
 
-//投稿済みに更新する
 func UpdatePostStatus(db *sql.DB, id, postStatus int) error {
 	_, err := db.Exec(
 		`UPDATE NOVEL SET POSTSTATUS = ? WHERE id = ?`,

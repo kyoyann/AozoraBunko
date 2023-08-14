@@ -31,7 +31,9 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	//作品一覧ページ（https://www.aozora.gr.jp/index_pages/sakuhin_a1.html）から図書カードのURLを取得する。
 	for i := 0; i < 45; i++ {
+		//索引ごとの作品数は不定なので上限を設定できない
 		for j := 1; ; j++ {
 			ns, err := scraping.GetLibraryCardUrl(charindexs[i], strconv.Itoa(j))
 			if errors.Is(err, scraping.ErrGetPage) {

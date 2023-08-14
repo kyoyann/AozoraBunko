@@ -59,7 +59,7 @@ type twitterAuth struct {
 
 func PostTweet(title, author string, mediaids []string) error {
 	t := tweet{
-		Text: fmt.Sprintf("作品名 %s\n著者   %s", title, author),
+		Text: fmt.Sprintf("作品名 %s\n著者　 %s", title, author),
 		Media: struct {
 			MediaIds []string "json:\"media_ids\""
 		}{

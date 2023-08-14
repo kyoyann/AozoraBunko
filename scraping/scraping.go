@@ -33,6 +33,7 @@ var (
 )
 
 func GetLibraryCardUrl(charindex, page string) ([]store.Novel, error) {
+	//一ページにつき最大50作品が掲載されている
 	ns := make([]store.Novel, 50)
 	res, err := http.Get(BASEURL + "index_pages/sakuhin_" + charindex + page)
 	if err != nil {
@@ -105,6 +106,7 @@ func GetNovelUrl(url string) (novelUrl string, err error) {
 	if !isFoundUrl {
 		return "", ErrGetNovelUrl
 	}
+	//novelUrlは相対パスで記載されているため、アクセスURLの末尾のパスを除いたものとnovelUrlを結合した値がフルパスになる
 	return url[:strings.LastIndex(url, "/")] + novelUrl[1:], nil
 }
 
@@ -118,7 +120,9 @@ func Screenshot(urlstr string) error {
 	var main, info []byte
 	t := chromedp.Tasks{
 		chromedp.Navigate(urlstr),
+		//本文のスクリーンショット
 		chromedp.Screenshot(MAINSEL, &main, chromedp.NodeVisible),
+		//底本のスクリーンショット
 		chromedp.Screenshot(INFOSEL, &info, chromedp.NodeVisible),
 		chromedp.Emulate(device.IPhone8),
 	}

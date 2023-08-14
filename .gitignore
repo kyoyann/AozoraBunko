@@ -23,5 +23,8 @@ go.work
 # Images
 *.png
 
-#Auth
+# Auth
 auth.json
+
+# DB
+aozora.db

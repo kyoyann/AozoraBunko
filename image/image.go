@@ -67,7 +67,6 @@ func CreatePostImages(path string) (int, error) {
 	return cn, nil
 }
 
-//TODO　全て白色の画像は保存しないようにする。IsAllWhite関数作って最初にチェックする。
 func createCropImage(img image.Image, starth, endh, index int) error {
 	croppedImg, err := cutter.Crop(img, cutter.Config{
 		Width:   WIDTH,

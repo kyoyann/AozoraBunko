@@ -68,6 +68,9 @@ Loop:
 
 	//ファイルサイズを制限しているため、画像が4枚以上になることはないが念の為エラー処理を入れておく
 	if cn >= 4 {
+		if err := store.UpdatePostStatus(db, ns[index].ID, store.NOT_POSTED); err != nil {
+			log.Fatalln(err)
+		}
 		image.DeleteImages()
 		log.Fatalln("too many images")
 	}
